@@ -1,87 +1,147 @@
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
-  Receipt, 
-  PieChart, 
+  CreditCard, 
+  BarChart3, 
   Target, 
-  Lightbulb, 
-  BotMessageSquare,
+  Sparkles, 
+  Bot,
   Plus
 } from "lucide-react";
 import { AddExpenseModal } from "@/components/shared/AddExpenseModal";
 import { Button } from "@/components/ui/button";
+import { motion, useReducedMotion } from "framer-motion";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Expenses", href: "/expenses", icon: Receipt },
-  { name: "Analytics", href: "/analytics", icon: PieChart },
+  { name: "Expenses", href: "/expenses", icon: CreditCard },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Budgets", href: "/budgets", icon: Target },
-  { name: "Insights", href: "/insights", icon: Lightbulb },
-  { name: "Assistant", href: "/assistant", icon: BotMessageSquare },
+  { name: "Insights", href: "/insights", icon: Sparkles },
+  { name: "Assistant", href: "/assistant", icon: Bot },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  show: { opacity: 1, x: 0 }
+};
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div className="flex min-h-screen w-full flex-col md:flex-row bg-background">
+    <div className="flex min-h-[100dvh] w-full flex-col md:flex-row bg-background">
       {/* Mobile Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border flex justify-around items-center p-2 pb-safe">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <div className={`p-3 rounded-xl flex flex-col items-center gap-1 ${
-              location === item.href ? "text-primary bg-primary/10" : "text-muted-foreground"
-            }`}>
-              <item.icon className="h-5 w-5" />
-            </div>
-          </Link>
-        ))}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-white/10 flex justify-around items-center p-2 pb-safe bg-sidebar/80 backdrop-blur-xl">
+        {navItems.map((item) => {
+          const isActive = location === item.href;
+          return (
+            <Link key={item.href} href={item.href}>
+              <div className={`p-2 rounded-xl flex flex-col items-center gap-1 transition-all duration-200 relative ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}>
+                {isActive && (
+                  <motion.div 
+                    layoutId="mobileNavIndicator"
+                    className="absolute -top-1 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_2px_rgba(91,108,249,0.5)]"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+                <item.icon className={`h-5 w-5 ${isActive ? "drop-shadow-[0_0_8px_rgba(91,108,249,0.5)]" : ""}`} />
+                <span className="text-[10px] font-medium opacity-80">{item.name}</span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 tracking-tight">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-black text-xl">F</span>
-            </div>
-            FinWise
-          </h1>
+      {/* Desktop Sidebar (Dark Theme always) */}
+      <aside className="hidden md:flex w-64 flex-col border-r border-sidebar-border bg-[#0B1020] text-sidebar-foreground">
+        <div className="p-6 pb-2">
+          <Link href="/">
+            <h1 className="text-2xl font-bold flex items-center gap-3 tracking-tight cursor-pointer group">
+              <div className="w-9 h-9 rounded-xl gradient-indigo flex items-center justify-center shadow-lg group-hover:shadow-indigo-500/20 transition-all duration-300">
+                <span className="text-white font-black text-xl leading-none">F</span>
+              </div>
+              <span className="text-white">Fin<span className="gradient-text font-extrabold">Wise</span></span>
+            </h1>
+          </Link>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <motion.nav 
+          className="flex-1 px-4 space-y-1 mt-6"
+          variants={prefersReducedMotion ? undefined : containerVariants}
+          initial="hidden"
+          animate="show"
+        >
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
-              <Link key={item.href} href={item.href}>
-                <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <item.icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} />
-                  {item.name}
-                </div>
-              </Link>
+              <motion.div key={item.href} variants={prefersReducedMotion ? undefined : itemVariants}>
+                <Link href={item.href}>
+                  <div
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 cursor-pointer relative overflow-hidden ${
+                      isActive
+                        ? "text-white"
+                        : "text-sidebar-foreground/70 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div 
+                        layoutId="activeNavBackground"
+                        className="absolute inset-0 gradient-indigo opacity-20"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full shadow-[0_0_8px_rgba(91,108,249,0.8)]" />
+                    )}
+                    <item.icon className={`h-5 w-5 relative z-10 ${isActive ? "text-primary drop-shadow-[0_0_8px_rgba(91,108,249,0.5)]" : ""}`} />
+                    <span className="relative z-10">{item.name}</span>
+                  </div>
+                </Link>
+              </motion.div>
             );
           })}
-        </nav>
+        </motion.nav>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-sidebar-border/50">
           <AddExpenseModal>
-            <Button className="w-full gap-2 hover-elevate">
-              <Plus className="h-4 w-4" />
+            <Button className="w-full gap-2 h-12 rounded-xl gradient-indigo text-white shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 border-none font-semibold">
+              <Plus className="h-5 w-5" />
               Add Expense
             </Button>
           </AddExpenseModal>
+          
+          <div className="mt-6 flex items-center gap-3 px-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px]">
+              <div className="w-full h-full rounded-full bg-[#0B1020] flex items-center justify-center border-2 border-[#0B1020]">
+                <span className="text-xs font-bold text-white">JD</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white leading-tight">John Doe</p>
+              <p className="text-xs text-sidebar-foreground/60">Free Plan</p>
+            </div>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 pb-24 md:pb-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-4 md:p-8">
+      <main className="flex-1 pb-24 md:pb-0 overflow-y-auto relative">
+        <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto p-4 md:p-8 relative z-10">
           {children}
         </div>
       </main>
@@ -89,7 +149,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Mobile Floating Action Button */}
       <div className="md:hidden fixed bottom-20 right-4 z-50">
         <AddExpenseModal>
-          <Button size="icon" className="h-14 w-14 rounded-full shadow-lg hover-elevate">
+          <Button size="icon" className="h-14 w-14 rounded-full gradient-indigo text-white shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all border-none">
             <Plus className="h-6 w-6" />
           </Button>
         </AddExpenseModal>

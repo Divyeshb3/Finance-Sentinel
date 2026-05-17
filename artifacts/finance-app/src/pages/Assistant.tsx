@@ -4,12 +4,19 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BotMessageSquare, User, Send, Loader2 } from "lucide-react";
+import { Bot, Send, User } from "lucide-react";
 import { ChatHistoryItem } from "@workspace/api-client-react/src/generated/api.schemas";
+import { motion, AnimatePresence } from "framer-motion";
+
+const SUGGESTED_PROMPTS = [
+  "How much did I spend this month?",
+  "Where am I overspending?",
+  "How can I save money?"
+];
 
 export default function Assistant() {
   const [messages, setMessages] = useState<ChatHistoryItem[]>([
-    { role: "assistant", content: "Hi! I'm your FinWise AI assistant. I can analyze your spending, suggest budgets, or answer general finance questions. How can I help you today?" }
+    { role: "assistant", content: "Hi! I'm FinWise AI. I can analyze your spending, suggest budgets, or answer general finance questions. How can I help you today?" }
   ]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -22,11 +29,12 @@ export default function Assistant() {
     }
   }, [messages, sendMessage.isPending]);
 
-  const handleSend = (e?: React.FormEvent) => {
+  const handleSend = (e?: React.FormEvent, overrideInput?: string) => {
     e?.preventDefault();
-    if (!input.trim() || sendMessage.isPending) return;
+    const textToSend = overrideInput || input;
+    if (!textToSend.trim() || sendMessage.isPending) return;
 
-    const userMessage: ChatHistoryItem = { role: "user", content: input.trim() };
+    const userMessage: ChatHistoryItem = { role: "user", content: textToSend.trim() };
     const updatedHistory = [...messages, userMessage];
     setMessages(updatedHistory);
     setInput("");
@@ -34,7 +42,7 @@ export default function Assistant() {
     sendMessage.mutate({
       data: {
         message: userMessage.content,
-        history: messages.slice(-5) // Send last 5 messages for context
+        history: messages.slice(-5)
       }
     }, {
       onSuccess: (data) => {
@@ -47,61 +55,95 @@ export default function Assistant() {
   };
 
   return (
-    <div className="h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)] flex flex-col space-y-4 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">AI Assistant</h2>
-        <p className="text-muted-foreground">Your personal financial coach</p>
-      </div>
+    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] flex flex-col space-y-4 animate-in fade-in duration-500 max-w-4xl mx-auto">
+      <Card className="flex-1 flex flex-col border-none shadow-xl overflow-hidden glass-card">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border/50 bg-background/50 backdrop-blur-sm flex items-center gap-4 relative z-10">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full gradient-indigo flex items-center justify-center shadow-md">
+              <Bot className="h-6 w-6 text-white" />
+            </div>
+            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-background rounded-full" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">FinWise AI</h2>
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Online</p>
+          </div>
+        </div>
 
-      <Card className="flex-1 flex flex-col border-none shadow-sm overflow-hidden bg-card">
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-4 sm:p-6" ref={scrollRef}>
+          {messages.length === 1 && (
+            <div className="flex flex-wrap gap-2 mb-8 justify-center mt-4">
+              {SUGGESTED_PROMPTS.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSend(undefined, prompt)}
+                  className="px-4 py-2 rounded-full bg-background/80 border border-border shadow-sm text-sm font-semibold hover:bg-muted transition-colors text-foreground"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="space-y-6 pb-4">
-            {messages.map((msg, idx) => (
-              <div 
-                key={idx} 
-                className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
-                }`}>
-                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <BotMessageSquare className="h-4 w-4" />}
-                </div>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground rounded-tr-sm' 
-                    : 'bg-muted text-foreground rounded-tl-sm'
-                }`}>
-                  {msg.content}
-                </div>
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {messages.map((msg, idx) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
+                >
+                  {msg.role === 'assistant' && (
+                    <div className="w-8 h-8 rounded-full gradient-indigo flex items-center justify-center shrink-0 shadow-sm mt-auto">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  <div className={`px-5 py-3.5 text-[15px] leading-relaxed shadow-sm font-medium ${
+                    msg.role === 'user' 
+                      ? 'gradient-indigo text-white rounded-2xl rounded-br-sm' 
+                      : 'glass-card border-none bg-white/80 dark:bg-[#11162D]/80 text-foreground rounded-2xl rounded-bl-sm'
+                  }`}>
+                    {msg.content}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
             {sendMessage.isPending && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shrink-0">
-                  <BotMessageSquare className="h-4 w-4" />
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex gap-3 max-w-[80%] mr-auto"
+              >
+                <div className="w-8 h-8 rounded-full gradient-indigo flex items-center justify-center shrink-0 shadow-sm mt-auto">
+                  <Bot className="h-4 w-4 text-white" />
                 </div>
-                <div className="bg-muted text-foreground rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Thinking...</span>
+                <div className="glass-card border-none bg-white/80 dark:bg-[#11162D]/80 text-foreground rounded-2xl rounded-bl-sm px-5 py-4 flex items-center gap-1.5 shadow-sm">
+                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-2 h-2 rounded-full bg-primary/60" />
+                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 rounded-full bg-primary/60" />
+                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-2 h-2 rounded-full bg-primary/60" />
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </ScrollArea>
-        <div className="p-4 bg-background border-t border-border mt-auto">
-          <form onSubmit={handleSend} className="flex gap-2">
+
+        <div className="p-4 sm:p-6 bg-background/80 backdrop-blur-xl border-t border-border/50">
+          <form onSubmit={(e) => handleSend(e)} className="flex gap-3 relative">
             <Input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your spending..."
-              className="flex-1 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+              placeholder="Ask anything about your finances..."
+              className="flex-1 h-14 rounded-full pl-6 pr-14 text-base bg-muted border-none focus-visible:ring-2 focus-visible:ring-primary shadow-inner"
               disabled={sendMessage.isPending}
             />
             <Button 
               type="submit" 
               size="icon" 
               disabled={!input.trim() || sendMessage.isPending}
-              className="shrink-0 rounded-full"
+              className="absolute right-2 top-2 h-10 w-10 rounded-full gradient-indigo shadow-md border-none text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
             >
               <Send className="h-4 w-4" />
             </Button>

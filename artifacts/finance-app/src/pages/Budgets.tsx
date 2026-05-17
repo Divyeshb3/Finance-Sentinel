@@ -8,14 +8,14 @@ import { formatCurrency } from "@/lib/format";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Target, Wallet } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { motion, useReducedMotion } from "framer-motion";
 
 export default function Budgets() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -32,6 +32,7 @@ export default function Budgets() {
   const { toast } = useToast();
   const deleteBudget = useDeleteBudget();
   const createBudget = useCreateBudget();
+  const prefersReducedMotion = useReducedMotion();
 
   const handleDelete = (id: number) => {
     deleteBudget.mutate({ id }, {
@@ -62,32 +63,44 @@ export default function Budgets() {
   };
 
   const getProgressColor = (percent: number) => {
-    if (percent >= 100) return "bg-destructive";
-    if (percent >= 80) return "bg-orange-500";
-    return "bg-primary";
+    if (percent >= 100) return "hsl(var(--destructive))";
+    if (percent >= 80) return "#f59e0b"; // amber-500
+    return "hsl(var(--primary))";
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300 } }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Budgets</h2>
-          <p className="text-muted-foreground">Keep your spending in check</p>
+          <h2 className="text-4xl font-extrabold tracking-tight">Budgets</h2>
+          <p className="text-muted-foreground font-medium mt-1">Keep your spending in check</p>
         </div>
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2"/> Set Budget</Button>
+            <Button className="rounded-xl font-bold px-6 shadow-lg hover:-translate-y-0.5 transition-all gradient-indigo text-white border-none">
+              <Plus className="h-5 w-5 mr-2"/> Set Budget
+            </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Set Monthly Budget</DialogTitle>
+          <DialogContent className="sm:max-w-[425px] border-none shadow-2xl glass-card">
+            <DialogHeader className="pt-2">
+              <DialogTitle className="text-2xl font-bold">Set Monthly Budget</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-6 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Category</label>
                 <Select value={newBudgetCategory} onValueChange={setNewBudgetCategory}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background/50 h-12 text-base">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -98,17 +111,25 @@ export default function Budgets() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Monthly Limit (₹)</label>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 5000" 
-                  value={newBudgetAmount}
-                  onChange={e => setNewBudgetAmount(e.target.value)}
-                />
+                <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Monthly Limit (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">₹</span>
+                  <Input 
+                    type="number" 
+                    placeholder="5000" 
+                    value={newBudgetAmount}
+                    onChange={e => setNewBudgetAmount(e.target.value)}
+                    className="pl-8 h-14 text-xl font-bold bg-background/50"
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAddBudget} disabled={createBudget.isPending}>
+              <Button 
+                onClick={handleAddBudget} 
+                disabled={createBudget.isPending}
+                className="w-full h-12 rounded-xl font-bold gradient-indigo shadow-lg text-white"
+              >
                 {createBudget.isPending ? "Saving..." : "Save Budget"}
               </Button>
             </DialogFooter>
@@ -116,68 +137,94 @@ export default function Budgets() {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <motion.div 
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+        variants={prefersReducedMotion ? undefined : containerVariants}
+        initial="hidden"
+        animate="show"
+      >
         {isLoading ? (
-          [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)
+          [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-56 w-full rounded-2xl" />)
         ) : budgets?.length === 0 ? (
-          <Card className="col-span-full border-none shadow-sm bg-muted/30">
-            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-              <Target className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-              <p className="font-medium text-lg">No budgets set</p>
-              <p className="text-muted-foreground mb-4">Set limits for categories to stay on track.</p>
-              <Button variant="outline" onClick={() => setOpen(true)}>Create First Budget</Button>
-            </CardContent>
-          </Card>
+          <div className="col-span-full">
+            <Card className="glass-card border-none shadow-sm">
+              <CardContent className="flex flex-col items-center justify-center p-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                  <Target className="h-10 w-10 text-muted-foreground opacity-50" />
+                </div>
+                <h3 className="font-bold text-2xl mb-2">No budgets set</h3>
+                <p className="text-muted-foreground font-medium mb-6">Set limits for categories to stay on track.</p>
+                <Button variant="outline" className="rounded-full font-semibold" onClick={() => setOpen(true)}>Create First Budget</Button>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           budgets?.map((budget) => {
             const percent = Math.min(100, Math.round((budget.spent / budget.amount) * 100));
-            const colorClass = getProgressColor(percent);
+            const colorValue = getProgressColor(percent);
             
             return (
-              <Card key={budget.id} className="border-none shadow-sm hover-elevate transition-all">
-                <CardHeader className="flex flex-row items-start justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-xl">{budget.category}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {formatCurrency(budget.spent)} of {formatCurrency(budget.amount)} spent
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-muted-foreground hover:text-destructive -mt-2 -mr-2"
-                    onClick={() => handleDelete(budget.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mt-4">
-                    <div className="flex justify-between text-sm font-medium">
-                      <span>{percent}%</span>
-                      <span className={percent >= 100 ? "text-destructive" : "text-muted-foreground"}>
-                        {budget.remaining && budget.remaining > 0 
-                          ? `${formatCurrency(budget.remaining)} left` 
-                          : "Over budget"}
-                      </span>
+              <motion.div key={budget.id} variants={prefersReducedMotion ? undefined : itemVariants}>
+                <Card className="glass-card border-none shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                  <CardHeader className="flex flex-row items-start justify-between pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg shadow-sm">
+                        {budget.category.charAt(0)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold">{budget.category}</CardTitle>
+                        <div className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted mt-1 w-fit">
+                          {percent}% Used
+                        </div>
+                      </div>
                     </div>
-                    {/* Progress bar needs custom coloring support via inline style or CSS vars. */}
-                    <div className="h-3 w-full bg-secondary rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 ease-out rounded-full ${colorClass}`} 
-                        style={{ width: `${percent}%` }}
-                      />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity rounded-full h-8 w-8"
+                      onClick={() => handleDelete(budget.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-end justify-between font-medium">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Spent</span>
+                          <span className="text-xl font-black">{formatCurrency(budget.spent)}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Limit</span>
+                          <span className="text-xl font-bold text-muted-foreground">{formatCurrency(budget.amount)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="h-3 w-full bg-muted rounded-full overflow-hidden relative">
+                        <motion.div 
+                          className="absolute left-0 top-0 bottom-0 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percent}%` }}
+                          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                          style={{ backgroundColor: colorValue }}
+                        />
+                      </div>
+                      
+                      <div className="pt-2 text-right">
+                        <span className={`text-sm font-bold ${percent >= 100 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {budget.remaining && budget.remaining > 0 
+                            ? `${formatCurrency(budget.remaining)} left` 
+                            : "Over budget"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
             );
           })
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
-
-// Quick hack for Target icon since it wasn't imported in Budgets
-import { Target } from "lucide-react";

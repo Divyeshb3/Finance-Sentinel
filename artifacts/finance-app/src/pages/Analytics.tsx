@@ -6,17 +6,19 @@ import {
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
+import { motion } from "framer-motion";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--primary))'];
 
 export default function Analytics() {
-  // Just use arbitrary dates for demo since API doesn't strictly enforce dates
-  const startDate = "2024-01-01";
-  const endDate = "2024-12-31";
+  // Use dynamic last 30 days as requested
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const endDate = new Date().toISOString().slice(0, 10);
 
   const { data: dailyData, isLoading: isLoadingDaily } = useGetDailyAnalytics(
     { startDate, endDate },
@@ -32,154 +34,279 @@ export default function Analytics() {
     query: { queryKey: getGetSpendingComparisonQueryKey() }
   });
 
+  // Calculate stats
+  const totalSpend = dailyData?.reduce((acc, curr) => acc + curr.total, 0) || 0;
+  const avgDaily = dailyData?.length ? totalSpend / dailyData.length : 0;
+  const topCategory = categoryData?.sort((a, b) => b.total - a.total)[0];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
-        <p className="text-muted-foreground">Deep dive into your spending patterns</p>
+        <h2 className="text-4xl font-extrabold tracking-tight">Analytics</h2>
+        <p className="text-muted-foreground font-medium mt-1">Deep dive into your spending patterns</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Daily Spending Trend */}
-        <Card className="md:col-span-2 lg:col-span-2 border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Spending Trend</CardTitle>
-            <CardDescription>Your daily spending over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingDaily ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : dailyData && dailyData.length > 0 ? (
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="date" 
-                      tickFormatter={(val) => {
-                        const d = new Date(val);
-                        return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
-                      }}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis 
-                      tickFormatter={(val) => `₹${val}`}
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => [formatCurrency(value), "Spent"]}
-                      labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-md)' }}
-                    />
-                    <Area type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No data available
-              </div>
-            )}
+      {/* 3 summary stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="glass-card border-none shadow-sm">
+          <CardContent className="p-6">
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total (30 Days)</p>
+            {isLoadingDaily ? <Skeleton className="h-8 w-32" /> : <div className="text-3xl font-black">{formatCurrency(totalSpend)}</div>}
           </CardContent>
         </Card>
-
-        {/* Category Breakdown */}
-        <Card className="border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>By Category</CardTitle>
-            <CardDescription>Where your money goes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingCategory ? (
-              <Skeleton className="h-[300px] w-full rounded-full" />
-            ) : categoryData && categoryData.length > 0 ? (
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="total"
-                      nameKey="category"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No data available
-              </div>
-            )}
+        <Card className="glass-card border-none shadow-sm">
+          <CardContent className="p-6">
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Avg Daily</p>
+            {isLoadingDaily ? <Skeleton className="h-8 w-32" /> : <div className="text-3xl font-black">{formatCurrency(avgDaily)}</div>}
           </CardContent>
         </Card>
+        <Card className="glass-card border-none shadow-sm relative overflow-hidden">
+          <div className="absolute right-0 top-0 bottom-0 w-2 bg-chart-2" />
+          <CardContent className="p-6">
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Top Category</p>
+            {isLoadingCategory ? <Skeleton className="h-8 w-32" /> : <div className="text-3xl font-black truncate">{topCategory?.category || "N/A"}</div>}
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Comparison */}
-        <Card className="md:col-span-2 lg:col-span-3 border-none shadow-sm">
-          <CardHeader>
-            <CardTitle>Spending Comparison</CardTitle>
-            <CardDescription>This week vs last week</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingComparison ? (
-              <Skeleton className="h-[250px] w-full" />
-            ) : comparisonData ? (
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <span className="text-muted-foreground">This Week</span>
-                    <span className="font-bold text-lg">{formatCurrency(comparisonData.thisWeek)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-2 border-b">
-                    <span className="text-muted-foreground">Last Week</span>
-                    <span className="font-bold text-lg">{formatCurrency(comparisonData.lastWeek)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Change</span>
-                    <span className={`font-bold flex items-center ${comparisonData.weekChange > 0 ? 'text-destructive' : 'text-primary'}`}>
-                      {comparisonData.weekChange > 0 ? '+' : ''}{comparisonData.weekChange.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="h-[150px]">
+      <Tabs defaultValue="trend" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl">
+          <TabsTrigger value="trend" className="rounded-lg font-semibold">Daily Trend</TabsTrigger>
+          <TabsTrigger value="categories" className="rounded-lg font-semibold">Categories</TabsTrigger>
+          <TabsTrigger value="comparison" className="rounded-lg font-semibold">Comparison</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="trend" className="mt-0">
+          <Card className="glass-card border-none shadow-sm">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl font-bold">Spending Trend</CardTitle>
+              <CardDescription>Your daily spending over the last 30 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingDaily ? (
+                <Skeleton className="h-[400px] w-full rounded-xl" />
+              ) : dailyData && dailyData.length > 0 ? (
+                <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { name: 'Last Week', amount: comparisonData.lastWeek },
-                      { name: 'This Week', amount: comparisonData.thisWeek }
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                      <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'transparent'}} />
-                      <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
-                    </BarChart>
+                    <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(val) => {
+                          const d = new Date(val);
+                          return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`;
+                        }}
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis 
+                        tickFormatter={(val) => `₹${val}`}
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        dx={-10}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value: number) => [formatCurrency(value), "Spent"]}
+                        labelFormatter={(label) => new Date(label as string).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        contentStyle={{ 
+                          borderRadius: '12px', 
+                          border: '1px solid hsl(var(--border))', 
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 
+                          background: 'rgba(255, 255, 255, 0.9)', 
+                          backdropFilter: 'blur(10px)',
+                          color: 'hsl(var(--foreground))',
+                          fontWeight: 600
+                        }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="total" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={4} 
+                        fillOpacity={1} 
+                        fill="url(#colorTotal)" 
+                        isAnimationActive={true}
+                        activeDot={{ r: 6, strokeWidth: 0, fill: "hsl(var(--primary))" }}
+                      />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground font-medium">
+                  No data available for this period.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="categories" className="mt-0">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="glass-card border-none shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold">Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                {isLoadingCategory ? (
+                  <Skeleton className="h-[300px] w-full rounded-full" />
+                ) : categoryData && categoryData.length > 0 ? (
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={80}
+                          outerRadius={110}
+                          paddingAngle={3}
+                          dataKey="total"
+                          nameKey="category"
+                          stroke="none"
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          formatter={(value: number) => formatCurrency(value)}
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                        />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card border-none shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold">Top Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingCategory ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  </div>
+                ) : categoryData && categoryData.length > 0 ? (
+                  <div className="space-y-6">
+                    {categoryData.sort((a, b) => b.total - a.total).map((cat, idx) => {
+                      const percent = (cat.total / totalSpend) * 100;
+                      return (
+                        <div key={cat.category} className="space-y-2">
+                          <div className="flex justify-between items-end">
+                            <span className="font-semibold">{cat.category}</span>
+                            <span className="font-bold">{formatCurrency(cat.total)}</span>
+                          </div>
+                          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full" 
+                              style={{ 
+                                width: `${percent}%`, 
+                                backgroundColor: COLORS[idx % COLORS.length] 
+                              }} 
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="comparison" className="mt-0">
+          <Card className="glass-card border-none shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold">Period Comparison</CardTitle>
+              <CardDescription>This week vs last week</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingComparison ? (
+                <Skeleton className="h-[300px] w-full rounded-xl" />
+              ) : comparisonData ? (
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">This Week</p>
+                      <p className="text-5xl font-black">{formatCurrency(comparisonData.thisWeek)}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Last Week</p>
+                      <p className="text-3xl font-bold text-muted-foreground">{formatCurrency(comparisonData.lastWeek)}</p>
+                    </div>
+                    <div>
+                      <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${
+                        comparisonData.weekChange > 0 
+                          ? 'bg-destructive/10 text-destructive' 
+                          : 'bg-emerald-500/10 text-emerald-600'
+                      }`}>
+                        {comparisonData.weekChange > 0 ? '↑ Up' : '↓ Down'} {Math.abs(comparisonData.weekChange).toFixed(1)}% vs last week
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={[
+                        { name: 'Last Week', amount: comparisonData.lastWeek },
+                        { name: 'This Week', amount: comparisonData.thisWeek }
+                      ]}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.5} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} dy={10} fontWeight={600} />
+                        <RechartsTooltip 
+                          formatter={(value: number) => formatCurrency(value)} 
+                          cursor={{fill: 'var(--muted)', opacity: 0.5}} 
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                        />
+                        <Bar 
+                          dataKey="amount" 
+                          radius={[8, 8, 0, 0]} 
+                          barSize={60}
+                        >
+                          {
+                            [
+                              { name: 'Last Week', amount: comparisonData.lastWeek },
+                              { name: 'This Week', amount: comparisonData.thisWeek }
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 1 ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"} />
+                            ))
+                          }
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

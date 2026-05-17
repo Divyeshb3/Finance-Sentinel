@@ -1,0 +1,124 @@
+Design a premium, modern, professional UI/UX for a Personal Finance Management app. The design should feel like a real fintech startup product similar to CRED, Jupiter, Walnut, INDmoney, Notion, and modern banking apps.
+
+Design Style:
+
+* Minimal but premium
+* Clean spacing
+* Soft shadows
+* Glassmorphism + modern card UI
+* Smooth animations and transitions
+* Highly polished fintech aesthetic
+* Professional typography
+* Mobile-first responsive design
+
+Color Palette:
+
+* Primary: Deep Indigo / Electric Blue
+* Secondary: Emerald Green
+* Accent: Purple gradients
+* Background:
+
+  * Dark mode: #0B1020
+  * Light mode: #F5F7FB
+* Use gradient highlights for charts and important metrics
+
+Typography:
+
+* Use modern fonts like:
+
+  * Inter
+  * Poppins
+  * SF Pro Display
+* Large bold headings
+* Clean readable financial data
+
+Main Screens to Design:
+
+1. Dashboard Screen
+   Include:
+
+* Total balance card
+* Today's spending
+* Weekly spending
+* Monthly spending
+* Savings prediction
+* Expense breakdown pie chart
+* Spending trend graph
+* Recent transactions
+* Financial health score
+* AI insights section
+
+2. Expense Entry Screen
+
+* Floating add expense button
+* Smart category selector with icons
+* Animated input fields
+* Quick-add expense chips
+* Voice input option
+
+3. Analytics Screen
+   Professional charts:
+
+* Line charts
+* Bar charts
+* Donut charts
+* Heatmaps for daily spending
+* Weekly/monthly comparisons
+* Category-wise analysis
+
+4. AI Insights Screen
+   Show AI-generated insights in premium cards:
+
+* “You overspent on food this week”
+* “You can save ₹3000/month”
+* “Entertainment expenses increased 20%”
+
+Use:
+
+* AI assistant avatar
+* Chat-style finance suggestions
+* Interactive recommendations
+
+5. Budget Planner Screen
+
+* Progress bars
+* Savings goals
+* Animated budget tracking
+* Monthly target cards
+
+UI Components:
+
+* Glass cards
+* Animated charts
+* Gradient buttons
+* Floating navigation bar
+* Rounded corners (2xl)
+* Smooth hover effects
+* Micro interactions
+
+Animations:
+
+* Framer Motion animations
+* Smooth page transitions
+* Animated counters
+* Loading skeletons
+* Interactive charts
+
+Important:
+
+* The UI should look production-ready
+* Avoid beginner-style layouts
+* Create a polished startup-quality design
+* Focus heavily on dashboard aesthetics and chart presentation
+* Use premium fintech app inspiration
+
+Tech/UI Libraries:
+
+* Tailwind CSS
+* shadcn/ui
+* Framer Motion
+* Recharts
+* Lucide Icons
+
+Expected Result:
+A visually stunning, highly professional finance management app UI with modern fintech aesthetics, premium dashboards, and beautiful analytics visualizations.

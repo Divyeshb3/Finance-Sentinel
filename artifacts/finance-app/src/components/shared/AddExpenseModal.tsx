@@ -2,14 +2,19 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateExpense, getListExpensesQueryKey, getGetAnalyticsSummaryQueryKey, getGetDailyAnalyticsQueryKey, getGetCategoryAnalyticsQueryKey } from "@workspace/api-client-react";
+import { 
+  useCreateExpense, 
+  getListExpensesQueryKey, 
+  getGetAnalyticsSummaryQueryKey, 
+  getGetDailyAnalyticsQueryKey, 
+  getGetCategoryAnalyticsQueryKey 
+} from "@workspace/api-client-react";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -23,15 +28,34 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+import { 
+  Utensils, Plane, ShoppingBag, Smartphone, 
+  Film, GraduationCap, HeartPulse, FileText, 
+  MoreHorizontal, CreditCard, Banknote, SmartphoneNfc, Wallet
+} from "lucide-react";
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  Food: <Utensils className="w-5 h-5" />,
+  Travel: <Plane className="w-5 h-5" />,
+  Shopping: <ShoppingBag className="w-5 h-5" />,
+  Recharge: <Smartphone className="w-5 h-5" />,
+  Entertainment: <Film className="w-5 h-5" />,
+  Education: <GraduationCap className="w-5 h-5" />,
+  Health: <HeartPulse className="w-5 h-5" />,
+  Bills: <FileText className="w-5 h-5" />,
+  Other: <MoreHorizontal className="w-5 h-5" />
+};
+
+const METHOD_ICONS: Record<string, React.ReactNode> = {
+  Cash: <Banknote className="w-4 h-4" />,
+  UPI: <SmartphoneNfc className="w-4 h-4" />,
+  Card: <CreditCard className="w-4 h-4" />,
+  "Net Banking": <FileText className="w-4 h-4" />,
+  Wallet: <Wallet className="w-4 h-4" />
+};
 
 const formSchema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than 0"),
@@ -71,8 +95,8 @@ export function AddExpenseModal({ children }: { children: React.ReactNode }) {
           });
           queryClient.invalidateQueries({ queryKey: getListExpensesQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetAnalyticsSummaryQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetDailyAnalyticsQueryKey({ startDate: "", endDate: "" }) });
-          queryClient.invalidateQueries({ queryKey: getGetCategoryAnalyticsQueryKey({}) });
+          // Invalidate daily/category analytics by sweeping through
+          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "getDailyAnalytics" || query.queryKey[0] === "getCategoryAnalytics" });
         },
         onError: () => {
           toast({
@@ -88,111 +112,138 @@ export function AddExpenseModal({ children }: { children: React.ReactNode }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add Expense</DialogTitle>
-          <DialogDescription>
-            Record a new transaction to track your spending.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (₹)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Lunch at cafeteria" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none shadow-2xl glass-card">
+        <div className="p-6">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl font-bold tracking-tight">Add Expense</DialogTitle>
+            <DialogDescription>
+              Record a new transaction to track your spending.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem className="flex justify-center mb-8">
+                    <div className="relative">
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-bold text-muted-foreground">₹</span>
+                      <FormControl>
+                        <input 
+                          type="number" 
+                          placeholder="0" 
+                          className="text-5xl font-extrabold bg-transparent border-none outline-none focus:ring-0 w-full pl-8 py-2 max-w-[200px]"
+                          {...field}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage className="text-center" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">What was it for?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Lunch at cafeteria" className="bg-background/50 border-border/50 text-lg" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Category</FormLabel>
+                    <FormControl>
+                      <div className="grid grid-cols-3 gap-2">
                         {EXPENSE_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
+                          <div 
+                            key={cat}
+                            onClick={() => field.onChange(cat)}
+                            className={`flex flex-col items-center justify-center p-3 rounded-xl cursor-pointer transition-all duration-200 border ${
+                              field.value === cat 
+                                ? "bg-primary/10 border-primary text-primary shadow-sm" 
+                                : "bg-background/50 border-border/50 text-muted-foreground hover:bg-muted"
+                            }`}
+                          >
+                            <div className="mb-1">{CATEGORY_ICONS[cat]}</div>
+                            <span className="text-[10px] font-medium">{cat}</span>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </div>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Method</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Method</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Method" />
-                        </SelectTrigger>
+                        <div className="flex flex-wrap gap-2">
+                          {PAYMENT_METHODS.map((method) => (
+                            <div 
+                              key={method}
+                              onClick={() => field.onChange(method)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all border ${
+                                field.value === method
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background/50 text-muted-foreground border-border/50 hover:bg-muted"
+                              }`}
+                            >
+                              {METHOD_ICONS[method] || null}
+                              {method}
+                            </div>
+                          ))}
+                        </div>
                       </FormControl>
-                      <SelectContent>
-                        {PAYMENT_METHODS.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={createExpense.isPending}>
-                {createExpense.isPending ? "Adding..." : "Add Expense"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" className="bg-background/50 border-border/50" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  type="submit" 
+                  disabled={createExpense.isPending} 
+                  className="w-full h-12 text-base font-bold gradient-indigo shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  {createExpense.isPending ? "Adding..." : "Add Expense"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
