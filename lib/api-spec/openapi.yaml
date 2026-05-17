@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FinWise Personal Finance API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: expenses
+    description: Expense operations
+  - name: budgets
+    description: Budget operations
+  - name: analytics
+    description: Analytics and reporting
+  - name: insights
+    description: AI-powered insights
+  - name: chat
+    description: AI financial assistant
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,320 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      summary: List expenses with optional filters
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: endDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: category
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: paymentMethod
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      summary: Create a new expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Created expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+
+  /expenses/{id}:
+    get:
+      operationId: getExpense
+      tags: [expenses]
+      summary: Get expense by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateExpense
+      tags: [expenses]
+      summary: Update an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseUpdate"
+      responses:
+        "200":
+          description: Updated expense
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+    delete:
+      operationId: deleteExpense
+      tags: [expenses]
+      summary: Delete an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /budgets:
+    get:
+      operationId: listBudgets
+      tags: [budgets]
+      summary: List all budgets
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: ["string", "null"]
+          description: "Month in YYYY-MM format"
+      responses:
+        "200":
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Budget"
+    post:
+      operationId: createBudget
+      tags: [budgets]
+      summary: Create or update a budget for a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetInput"
+      responses:
+        "201":
+          description: Created budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+
+  /budgets/{id}:
+    patch:
+      operationId: updateBudget
+      tags: [budgets]
+      summary: Update a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BudgetUpdate"
+      responses:
+        "200":
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
+    delete:
+      operationId: deleteBudget
+      tags: [budgets]
+      summary: Delete a budget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get spending summary (today, week, month totals + category breakdown)
+      responses:
+        "200":
+          description: Summary data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/daily:
+    get:
+      operationId: getDailyAnalytics
+      tags: [analytics]
+      summary: Get day-by-day spending for a date range
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daily analytics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailySpend"
+
+  /analytics/categories:
+    get:
+      operationId: getCategoryAnalytics
+      tags: [analytics]
+      summary: Get spending breakdown by category
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: endDate
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: Category breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategorySpend"
+
+  /analytics/comparison:
+    get:
+      operationId: getSpendingComparison
+      tags: [analytics]
+      summary: Compare this week vs last week and this month vs last month
+      responses:
+        "200":
+          description: Spending comparison
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpendingComparison"
+
+  /analytics/health-score:
+    get:
+      operationId: getHealthScore
+      tags: [analytics]
+      summary: Get overall financial health score and breakdown
+      responses:
+        "200":
+          description: Health score
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthScore"
+
+  /insights:
+    get:
+      operationId: getInsights
+      tags: [insights]
+      summary: Get AI-generated spending insights and wasteful pattern detection
+      responses:
+        "200":
+          description: List of insights
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Insight"
+
+  /chat:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI financial assistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +357,209 @@ components:
       required:
         - status
 
+    Expense:
+      type: object
+      required: [id, amount, category, description, date, paymentMethod, createdAt]
+      properties:
+        id:
+          type: integer
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        paymentMethod:
+          type: string
+        createdAt:
+          type: string
+
+    ExpenseInput:
+      type: object
+      required: [amount, category, description, date, paymentMethod]
+      properties:
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        paymentMethod:
+          type: string
+
+    ExpenseUpdate:
+      type: object
+      properties:
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+        paymentMethod:
+          type: string
+
+    Budget:
+      type: object
+      required: [id, category, amount, month, spent]
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        amount:
+          type: number
+        month:
+          type: string
+        spent:
+          type: number
+        remaining:
+          type: number
+
+    BudgetInput:
+      type: object
+      required: [category, amount, month]
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+        month:
+          type: string
+
+    BudgetUpdate:
+      type: object
+      properties:
+        amount:
+          type: number
+
+    AnalyticsSummary:
+      type: object
+      required: [todayTotal, weekTotal, monthTotal, topCategory, savingsEstimate, recentExpenses]
+      properties:
+        todayTotal:
+          type: number
+        weekTotal:
+          type: number
+        monthTotal:
+          type: number
+        topCategory:
+          type: string
+        savingsEstimate:
+          type: number
+        recentExpenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
+
+    DailySpend:
+      type: object
+      required: [date, total]
+      properties:
+        date:
+          type: string
+        total:
+          type: number
+
+    CategorySpend:
+      type: object
+      required: [category, total, count, percentage]
+      properties:
+        category:
+          type: string
+        total:
+          type: number
+        count:
+          type: integer
+        percentage:
+          type: number
+
+    SpendingComparison:
+      type: object
+      required: [thisWeek, lastWeek, thisMonth, lastMonth, weekChange, monthChange]
+      properties:
+        thisWeek:
+          type: number
+        lastWeek:
+          type: number
+        thisMonth:
+          type: number
+        lastMonth:
+          type: number
+        weekChange:
+          type: number
+        monthChange:
+          type: number
+        avgDailyThisMonth:
+          type: number
+        avgDailyLastMonth:
+          type: number
+
+    HealthScore:
+      type: object
+      required: [score, grade, budgetAdherence, savingsRate, spendingConsistency]
+      properties:
+        score:
+          type: integer
+        grade:
+          type: string
+        budgetAdherence:
+          type: number
+        savingsRate:
+          type: number
+        spendingConsistency:
+          type: number
+        message:
+          type: string
+
+    Insight:
+      type: object
+      required: [id, type, title, message, severity]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        severity:
+          type: string
+        amount:
+          type: ["number", "null"]
+        savingsPotential:
+          type: ["number", "null"]
+
+    ChatMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatHistoryItem"
+
+    ChatHistoryItem:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+        content:
+          type: string
+
+    ChatResponse:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string

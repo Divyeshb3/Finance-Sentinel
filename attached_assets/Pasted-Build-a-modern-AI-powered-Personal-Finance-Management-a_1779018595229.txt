@@ -1,0 +1,135 @@
+Build a modern AI-powered Personal Finance Management app for students and young professionals.
+
+Core Goal:
+Help users track daily expenses, analyze spending habits, identify unnecessary expenses, and improve financial discipline.
+
+Main Features:
+
+1. Expense Tracking
+
+* User can quickly add expenses
+* Fields:
+
+  * Amount
+  * Category
+  * Description
+  * Date & Time
+  * Payment Method (Cash, UPI, Card, etc.)
+* Categories:
+
+  * Food
+  * Travel
+  * Shopping
+  * Recharge
+  * Entertainment
+  * Education
+  * Health
+  * Bills
+  * Other
+
+2. Day-wise Expense Analysis
+
+* Show how much money was spent each day
+* Display:
+
+  * Total spent today
+  * Highest spending category
+  * Expense timeline
+* Visualize using charts and graphs
+
+3. Week-wise & Month-wise Reports
+
+* Weekly spending summary
+* Monthly spending trends
+* Compare:
+
+  * This week vs last week
+  * This month vs last month
+* Show:
+
+  * Total expenses
+  * Average daily spending
+  * Top spending categories
+
+4. Unnecessary Expense Detection
+   Use AI/logic to identify wasteful spending patterns.
+   Examples:
+
+* Frequent food delivery
+* Too much shopping
+* Repeated small unnecessary purchases
+* Overspending on entertainment
+
+Generate insights like:
+
+* “You spent ₹2400 on snacks this week.”
+* “Entertainment expenses increased by 35%.”
+* “You could save ₹5000/month by reducing impulse purchases.”
+
+5. Smart Dashboard
+   Dashboard should include:
+
+* Today’s spending
+* Weekly total
+* Monthly total
+* Savings estimate
+* Spending breakdown chart
+* Financial health score
+
+6. Budget Management
+
+* User can set monthly budgets
+* Alert user when nearing limit
+* Show remaining budget
+
+7. AI Financial Assistant
+   Add an AI chatbot/assistant that:
+
+* Answers finance-related questions
+* Gives savings suggestions
+* Explains spending behavior
+* Suggests better budgeting habits
+
+8. UI/UX Requirements
+
+* Modern clean UI
+* Dark/light mode
+* Mobile responsive
+* Fast and minimal design
+* Use cards, charts, and animations
+
+9. Tech Stack Suggestions
+   Frontend:
+
+* React / Next.js
+* Tailwind CSS
+
+Backend:
+
+* Node.js + Express
+  or
+* Firebase / Supabase
+
+Database:
+
+* MongoDB / PostgreSQL
+
+Charts:
+
+* Recharts / Chart.js
+
+Authentication:
+
+* Google Login / JWT Auth
+
+10. Advanced Features (Optional)
+
+* Receipt scanning using OCR
+* Voice expense entry
+* Export reports as PDF
+* Expense prediction using ML
+* Savings goals tracker
+* Bank SMS parsing
+
+Expected Output:
+Create a fully functional finance tracking app with analytics dashboard, AI insights, expense categorization, and smart spending analysis.
