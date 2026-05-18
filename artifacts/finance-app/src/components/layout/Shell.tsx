@@ -6,11 +6,20 @@ import {
   Target, 
   Sparkles, 
   Bot,
-  Plus
+  Plus,
+  LogOut
 } from "lucide-react";
 import { AddExpenseModal } from "@/components/shared/AddExpenseModal";
 import { Button } from "@/components/ui/button";
 import { motion, useReducedMotion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { logOut } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -25,9 +34,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
+    transition: { staggerChildren: 0.05 }
   }
 };
 
@@ -36,14 +43,55 @@ const itemVariants = {
   show: { opacity: 1, x: 0 }
 };
 
+function UserAvatar({ photoURL, displayName, email }: { photoURL?: string | null; displayName?: string | null; email?: string | null }) {
+  const initials = displayName
+    ? displayName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : email
+    ? email[0].toUpperCase()
+    : "?";
+
+  if (photoURL) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px] shrink-0">
+        <img
+          src={photoURL}
+          alt={displayName ?? "User"}
+          className="w-full h-full rounded-full object-cover border-2 border-[#0B1020]"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px] shrink-0">
+      <div className="w-full h-full rounded-full bg-[#0B1020] flex items-center justify-center">
+        <span className="text-xs font-bold text-white">{initials}</span>
+      </div>
+    </div>
+  );
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const prefersReducedMotion = useReducedMotion();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await logOut();
+    } catch {
+      toast({ title: "Logout failed", description: "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? "User";
+  const shortName = displayName.length > 16 ? displayName.slice(0, 16) + "…" : displayName;
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col md:flex-row bg-background">
-      {/* Mobile Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-white/10 flex justify-around items-center p-2 pb-safe bg-sidebar/80 backdrop-blur-xl">
+      {/* Mobile bottom nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-white/10 flex justify-around items-center p-2 bg-sidebar/80 backdrop-blur-xl">
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
@@ -66,7 +114,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         })}
       </div>
 
-      {/* Desktop Sidebar (Dark Theme always) */}
+      {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col border-r border-sidebar-border bg-[#0B1020] text-sidebar-foreground">
         <div className="p-6 pb-2">
           <Link href="/">
@@ -90,13 +138,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
             return (
               <motion.div key={item.href} variants={prefersReducedMotion ? undefined : itemVariants}>
                 <Link href={item.href}>
-                  <div
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 cursor-pointer relative overflow-hidden ${
-                      isActive
-                        ? "text-white"
-                        : "text-sidebar-foreground/70 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 cursor-pointer relative overflow-hidden ${
+                    isActive
+                      ? "text-white"
+                      : "text-sidebar-foreground/70 hover:text-white hover:bg-white/5"
+                  }`}>
                     {isActive && (
                       <motion.div 
                         layoutId="activeNavBackground"
@@ -116,7 +162,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </motion.nav>
 
-        <div className="p-4 border-t border-sidebar-border/50">
+        <div className="p-4 border-t border-sidebar-border/50 space-y-4">
           <AddExpenseModal>
             <Button className="w-full gap-2 h-12 rounded-xl gradient-indigo text-white shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-0.5 border-none font-semibold">
               <Plus className="h-5 w-5" />
@@ -124,16 +170,31 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Button>
           </AddExpenseModal>
           
-          <div className="mt-6 flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 p-[2px]">
-              <div className="w-full h-full rounded-full bg-[#0B1020] flex items-center justify-center border-2 border-[#0B1020]">
-                <span className="text-xs font-bold text-white">JD</span>
-              </div>
+          {/* User profile + logout */}
+          <div className="flex items-center gap-3 px-2">
+            <UserAvatar
+              photoURL={user?.photoURL}
+              displayName={user?.displayName}
+              email={user?.email}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white leading-tight truncate">{shortName}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email ?? ""}</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-white leading-tight">John Doe</p>
-              <p className="text-xs text-sidebar-foreground/60">Free Plan</p>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLogout}
+                  className="shrink-0 p-2 rounded-lg text-sidebar-foreground/50 hover:text-white hover:bg-white/10 transition-all duration-200"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Sign out</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </aside>
@@ -146,7 +207,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Floating Action Button */}
+      {/* Mobile FAB */}
       <div className="md:hidden fixed bottom-20 right-4 z-50">
         <AddExpenseModal>
           <Button size="icon" className="h-14 w-14 rounded-full gradient-indigo text-white shadow-lg shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all border-none">
