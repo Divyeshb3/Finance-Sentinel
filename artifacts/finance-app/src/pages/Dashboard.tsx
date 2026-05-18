@@ -1,11 +1,6 @@
-import { 
-  useGetAnalyticsSummary, 
-  getGetAnalyticsSummaryQueryKey,
-  useGetHealthScore,
-  getGetHealthScoreQueryKey,
-  useGetInsights,
-  getGetInsightsQueryKey
-} from "@workspace/api-client-react";
+import { useExpenses } from "@/hooks/useExpenses";
+import { computeSummary, computeHealthScore } from "@/lib/analytics";
+import { useGetInsights, getGetInsightsQueryKey } from "@workspace/api-client-react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,18 +10,16 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { AddExpenseModal } from "@/components/shared/AddExpenseModal";
 import { motion, useReducedMotion } from "framer-motion";
+import { useMemo } from "react";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function Dashboard() {
   const prefersReducedMotion = useReducedMotion();
-  const { data: summary, isLoading: isLoadingSummary } = useGetAnalyticsSummary({
-    query: { queryKey: getGetAnalyticsSummaryQueryKey() }
-  });
-  
-  const { data: health, isLoading: isLoadingHealth } = useGetHealthScore({
-    query: { queryKey: getGetHealthScoreQueryKey() }
-  });
+  const { expenses, loading } = useExpenses();
+
+  const summary = useMemo(() => computeSummary(expenses), [expenses]);
+  const health = useMemo(() => computeHealthScore(expenses), [expenses]);
 
   const { data: insights, isLoading: isLoadingInsights } = useGetInsights({
     query: { queryKey: getGetInsightsQueryKey() }
@@ -34,10 +27,7 @@ export default function Dashboard() {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 }
-    }
+    show: { opacity: 1, transition: { staggerChildren: 0.08 } }
   };
 
   const itemVariants = {
@@ -46,9 +36,8 @@ export default function Dashboard() {
   };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const hasExpenses = (summary?.monthTotal ?? 0) > 0;
-  const chartData = summary?.categorySpend ?? [];
+  const hasExpenses = expenses.length > 0;
+  const chartData = summary.categorySpend;
 
   return (
     <motion.div 
@@ -74,10 +63,8 @@ export default function Dashboard() {
                 </div>
                 <h3 className="font-semibold text-muted-foreground">Today's Spend</h3>
               </div>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary?.todayTotal || 0)}</div>
+              {loading ? <Skeleton className="h-8 w-24" /> : (
+                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary.todayTotal)}</div>
               )}
             </CardContent>
           </Card>
@@ -93,10 +80,8 @@ export default function Dashboard() {
                 </div>
                 <h3 className="font-semibold text-muted-foreground">This Week</h3>
               </div>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary?.weekTotal || 0)}</div>
+              {loading ? <Skeleton className="h-8 w-24" /> : (
+                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary.weekTotal)}</div>
               )}
             </CardContent>
           </Card>
@@ -112,10 +97,8 @@ export default function Dashboard() {
                 </div>
                 <h3 className="font-semibold text-muted-foreground">This Month</h3>
               </div>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary?.monthTotal || 0)}</div>
+              {loading ? <Skeleton className="h-8 w-24" /> : (
+                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary.monthTotal)}</div>
               )}
             </CardContent>
           </Card>
@@ -132,18 +115,16 @@ export default function Dashboard() {
                 </div>
                 <h3 className="font-semibold text-white/90">Est. Savings</h3>
               </div>
-              {isLoadingSummary ? (
-                <Skeleton className="h-8 w-24 bg-white/20" />
-              ) : (
-                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary?.savingsEstimate || 0)}</div>
+              {loading ? <Skeleton className="h-8 w-24 bg-white/20" /> : (
+                <div className="text-3xl font-bold tracking-tight">{formatCurrency(summary.savingsEstimate)}</div>
               )}
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
 
-      {/* Empty onboarding state — shown only when no expenses exist yet */}
-      {!isLoadingSummary && !hasExpenses && (
+      {/* Empty onboarding state */}
+      {!loading && !hasExpenses && (
         <motion.div variants={prefersReducedMotion ? undefined : itemVariants}>
           <Card className="border-none shadow-sm overflow-hidden relative">
             <div className="absolute inset-0 gradient-indigo opacity-[0.06]" />
@@ -173,10 +154,10 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Data cards — only shown when expenses exist */}
-      {(isLoadingSummary || hasExpenses) && (
+      {/* Data cards */}
+      {(loading || hasExpenses) && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Health Score Gauge */}
+          {/* Health Score */}
           <motion.div variants={prefersReducedMotion ? undefined : itemVariants}>
             <Card className="glass-card border-none shadow-sm h-full">
               <CardHeader className="pb-2">
@@ -184,17 +165,13 @@ export default function Dashboard() {
                 <CardDescription>Based on recent activity</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col items-center justify-center p-6 pt-0">
-                {isLoadingHealth ? (
+                {loading ? (
                   <Skeleton className="w-40 h-40 rounded-full" />
                 ) : (
                   <>
                     <div className="relative flex items-center justify-center w-40 h-40">
                       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                        <circle
-                          cx="50" cy="50" r="45"
-                          fill="transparent" stroke="currentColor" strokeWidth="8"
-                          className="text-muted opacity-50"
-                        />
+                        <circle cx="50" cy="50" r="45" fill="transparent" stroke="currentColor" strokeWidth="8" className="text-muted opacity-50" />
                         <motion.circle
                           cx="50" cy="50" r="45"
                           fill="transparent"
@@ -202,54 +179,40 @@ export default function Dashboard() {
                           strokeWidth="8"
                           strokeLinecap="round"
                           initial={{ strokeDasharray: `0 282.7` }}
-                          animate={{ strokeDasharray: `${((health?.score || 0) / 100) * 282.7} 282.7` }}
+                          animate={{ strokeDasharray: `${(health.score / 100) * 282.7} 282.7` }}
                           transition={{ duration: 1.5, ease: "easeOut" }}
-                          className={`${
-                            (health?.score || 0) >= 80 ? 'text-emerald-500' :
-                            (health?.score || 0) >= 60 ? 'text-amber-500' : 'text-rose-500'
-                          }`}
+                          className={health.score >= 80 ? 'text-emerald-500' : health.score >= 60 ? 'text-amber-500' : 'text-rose-500'}
                         />
                       </svg>
                       <div className="absolute flex flex-col items-center justify-center text-center">
-                        <span className="text-5xl font-black tracking-tighter">{health?.grade || 'C'}</span>
-                        <span className="text-sm font-semibold text-muted-foreground mt-1">{health?.score || 0}/100</span>
+                        <span className="text-5xl font-black tracking-tighter">{health.grade}</span>
+                        <span className="text-sm font-semibold text-muted-foreground mt-1">{health.score}/100</span>
                       </div>
                     </div>
-                    {health?.message && (
-                      <div className="mt-6 px-4 py-2 rounded-full bg-muted/50 border border-border/50 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <p className="text-xs font-medium text-foreground">{health.message}</p>
-                      </div>
-                    )}
+                    <div className="mt-6 px-4 py-2 rounded-full bg-muted/50 border border-border/50 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <p className="text-xs font-medium text-foreground">{health.message}</p>
+                    </div>
                   </>
                 )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Category spending pie chart */}
+          {/* Category spending pie */}
           <motion.div variants={prefersReducedMotion ? undefined : itemVariants}>
             <Card className="glass-card border-none shadow-sm h-full flex flex-col">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Where your money goes</CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col items-center justify-center pb-6">
-                {isLoadingSummary ? (
+                {loading ? (
                   <Skeleton className="w-48 h-48 rounded-full" />
                 ) : chartData.length > 0 ? (
                   <div className="w-full h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie
-                          data={chartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={85}
-                          paddingAngle={5}
-                          dataKey="total"
-                          stroke="none"
-                        >
+                        <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="total" stroke="none">
                           {chartData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
@@ -271,7 +234,7 @@ export default function Dashboard() {
             </Card>
           </motion.div>
 
-          {/* Recent Expenses List */}
+          {/* Recent expenses */}
           <motion.div variants={prefersReducedMotion ? undefined : itemVariants}>
             <Card className="glass-card border-none shadow-sm h-full flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -281,13 +244,13 @@ export default function Dashboard() {
                 </Link>
               </CardHeader>
               <CardContent className="flex-1">
-                {isLoadingSummary ? (
+                {loading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
                   </div>
-                ) : summary?.recentExpenses?.length ? (
+                ) : summary.recentExpenses.length > 0 ? (
                   <div className="space-y-3">
-                    {summary.recentExpenses.slice(0, 4).map((expense) => (
+                    {summary.recentExpenses.map((expense) => (
                       <div key={expense.id} className="group flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-border/50">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm">
@@ -315,7 +278,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* AI Insights strip — only when insights exist */}
+      {/* AI Insights strip */}
       {!isLoadingInsights && insights && insights.length > 0 && (
         <motion.div variants={prefersReducedMotion ? undefined : containerVariants} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-3">
           {insights.slice(0, 3).map((insight) => {
@@ -323,16 +286,10 @@ export default function Dashboard() {
             const isWarning = insight.severity === 'warning';
             return (
               <motion.div key={insight.id} variants={prefersReducedMotion ? undefined : itemVariants} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Card className={`border-none shadow-sm relative overflow-hidden h-full ${
-                  isDanger ? 'bg-destructive/10' : isWarning ? 'bg-orange-500/10' : 'bg-primary/5'
-                }`}>
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    isDanger ? 'bg-destructive' : isWarning ? 'bg-orange-500' : 'bg-primary'
-                  }`} />
+                <Card className={`border-none shadow-sm relative overflow-hidden h-full ${isDanger ? 'bg-destructive/10' : isWarning ? 'bg-orange-500/10' : 'bg-primary/5'}`}>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isDanger ? 'bg-destructive' : isWarning ? 'bg-orange-500' : 'bg-primary'}`} />
                   <CardContent className="p-5 flex gap-4">
-                    <div className={`mt-1 shrink-0 ${
-                      isDanger ? 'text-destructive' : isWarning ? 'text-orange-500' : 'text-primary'
-                    }`}>
+                    <div className={`mt-1 shrink-0 ${isDanger ? 'text-destructive' : isWarning ? 'text-orange-500' : 'text-primary'}`}>
                       {isDanger ? <AlertCircle className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                     </div>
                     <div>

@@ -1,16 +1,14 @@
-import { useState } from "react";
-import { 
-  useListBudgets, getListBudgetsQueryKey,
-  useCreateBudget,
-  useDeleteBudget
-} from "@workspace/api-client-react";
+import { useState, useMemo } from "react";
+import { useBudgets } from "@/hooks/useBudgets";
+import { useExpenses } from "@/hooks/useExpenses";
+import { addBudget, removeBudget } from "@/lib/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/format";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, Target, Wallet } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Trash2, Plus, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -18,53 +16,68 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion, useReducedMotion } from "framer-motion";
 
 export default function Budgets() {
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentMonth = new Date().toISOString().slice(0, 7);
   const [open, setOpen] = useState(false);
   const [newBudgetCategory, setNewBudgetCategory] = useState("");
   const [newBudgetAmount, setNewBudgetAmount] = useState("");
+  const [isPending, setIsPending] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: budgets, isLoading } = useListBudgets(
-    { month: currentMonth },
-    { query: { queryKey: getListBudgetsQueryKey({ month: currentMonth }) } }
-  );
-
-  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const deleteBudget = useDeleteBudget();
-  const createBudget = useCreateBudget();
   const prefersReducedMotion = useReducedMotion();
 
-  const handleDelete = (id: number) => {
-    deleteBudget.mutate({ id }, {
-      onSuccess: () => {
-        toast({ title: "Budget removed" });
-        queryClient.invalidateQueries({ queryKey: getListBudgetsQueryKey() });
-      }
+  const { budgets, loading: loadingBudgets } = useBudgets(currentMonth);
+  const { expenses, loading: loadingExpenses } = useExpenses();
+
+  const loading = loadingBudgets || loadingExpenses;
+
+  const budgetsWithSpend = useMemo(() => {
+    return budgets.map((budget) => {
+      const spent = expenses
+        .filter((e) => e.category === budget.category && e.date.startsWith(budget.month))
+        .reduce((sum, e) => sum + e.amount, 0);
+      const remaining = budget.amount - spent;
+      return { ...budget, spent, remaining };
     });
+  }, [budgets, expenses]);
+
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    setDeletingId(id);
+    try {
+      await removeBudget(user.uid, id);
+      toast({ title: "Budget removed" });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to remove budget." });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const handleAddBudget = () => {
-    if (!newBudgetCategory || !newBudgetAmount) return;
-    createBudget.mutate({
-      data: {
+  const handleAddBudget = async () => {
+    if (!newBudgetCategory || !newBudgetAmount || !user) return;
+    setIsPending(true);
+    try {
+      await addBudget(user.uid, {
         category: newBudgetCategory,
         amount: Number(newBudgetAmount),
-        month: currentMonth
-      }
-    }, {
-      onSuccess: () => {
-        setOpen(false);
-        setNewBudgetCategory("");
-        setNewBudgetAmount("");
-        toast({ title: "Budget created" });
-        queryClient.invalidateQueries({ queryKey: getListBudgetsQueryKey() });
-      }
-    });
+        month: currentMonth,
+      });
+      setOpen(false);
+      setNewBudgetCategory("");
+      setNewBudgetAmount("");
+      toast({ title: "Budget created" });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to create budget." });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const getProgressColor = (percent: number) => {
     if (percent >= 100) return "hsl(var(--destructive))";
-    if (percent >= 80) return "#f59e0b"; // amber-500
+    if (percent >= 80) return "#f59e0b";
     return "hsl(var(--primary))";
   };
 
@@ -127,10 +140,10 @@ export default function Budgets() {
             <DialogFooter>
               <Button 
                 onClick={handleAddBudget} 
-                disabled={createBudget.isPending}
+                disabled={isPending}
                 className="w-full h-12 rounded-xl font-bold gradient-indigo shadow-lg text-white"
               >
-                {createBudget.isPending ? "Saving..." : "Save Budget"}
+                {isPending ? "Saving..." : "Save Budget"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -143,9 +156,9 @@ export default function Budgets() {
         initial="hidden"
         animate="show"
       >
-        {isLoading ? (
+        {loading ? (
           [1, 2, 3, 4].map(i => <Skeleton key={i} className="h-56 w-full rounded-2xl" />)
-        ) : budgets?.length === 0 ? (
+        ) : budgetsWithSpend.length === 0 ? (
           <div className="col-span-full">
             <Card className="glass-card border-none shadow-sm">
               <CardContent className="flex flex-col items-center justify-center p-16 text-center">
@@ -159,8 +172,8 @@ export default function Budgets() {
             </Card>
           </div>
         ) : (
-          budgets?.map((budget) => {
-            const percent = Math.min(100, Math.round((budget.spent / budget.amount) * 100));
+          budgetsWithSpend.map((budget) => {
+            const percent = budget.amount > 0 ? Math.min(100, Math.round((budget.spent / budget.amount) * 100)) : 0;
             const colorValue = getProgressColor(percent);
             
             return (
@@ -183,6 +196,7 @@ export default function Budgets() {
                       size="icon" 
                       className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity rounded-full h-8 w-8"
                       onClick={() => handleDelete(budget.id)}
+                      disabled={deletingId === budget.id}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -212,9 +226,7 @@ export default function Budgets() {
                       
                       <div className="pt-2 text-right">
                         <span className={`text-sm font-bold ${percent >= 100 ? "text-destructive" : "text-muted-foreground"}`}>
-                          {budget.remaining && budget.remaining > 0 
-                            ? `${formatCurrency(budget.remaining)} left` 
-                            : "Over budget"}
+                          {budget.remaining > 0 ? `${formatCurrency(budget.remaining)} left` : "Over budget"}
                         </span>
                       </div>
                     </div>

@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { 
-  useListExpenses, getListExpensesQueryKey,
-  useDeleteExpense, getGetAnalyticsSummaryQueryKey,
-  getGetDailyAnalyticsQueryKey, getGetCategoryAnalyticsQueryKey
-} from "@workspace/api-client-react";
+import { useExpenses } from "@/hooks/useExpenses";
+import { removeExpense } from "@/lib/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trash2, Search, Utensils, Plane, ShoppingBag, Smartphone, Film, GraduationCap, HeartPulse, FileText, MoreHorizontal } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
 import { AddExpenseModal } from "@/components/shared/AddExpenseModal";
@@ -30,30 +27,29 @@ const CATEGORY_CONFIG: Record<string, { color: string; bg: string; icon: any }> 
 export default function Expenses() {
   const [category, setCategory] = useState<string>("all");
   const [paymentMethod, setPaymentMethod] = useState<string>("all");
-  
-  const { data: expenses, isLoading } = useListExpenses({
-    category: category !== "all" ? category : undefined,
-    paymentMethod: paymentMethod !== "all" ? paymentMethod : undefined,
-  }, {
-    query: { queryKey: getListExpensesQueryKey({ 
-      category: category !== "all" ? category : undefined,
-      paymentMethod: paymentMethod !== "all" ? paymentMethod : undefined
-    }) }
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { expenses, loading } = useExpenses();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const filtered = expenses.filter((e) => {
+    if (category !== "all" && e.category !== category) return false;
+    if (paymentMethod !== "all" && e.paymentMethod !== paymentMethod) return false;
+    return true;
   });
 
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const deleteExpense = useDeleteExpense();
-
-  const handleDelete = (id: number) => {
-    deleteExpense.mutate({ id }, {
-      onSuccess: () => {
-        toast({ title: "Expense deleted" });
-        queryClient.invalidateQueries({ queryKey: getListExpensesQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAnalyticsSummaryQueryKey() });
-        queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "getDailyAnalytics" || query.queryKey[0] === "getCategoryAnalytics" });
-      }
-    });
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    setDeletingId(id);
+    try {
+      await removeExpense(user.uid, id);
+      toast({ title: "Expense deleted" });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete expense." });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -119,11 +115,11 @@ export default function Expenses() {
 
       <Card className="glass-card border-none shadow-sm overflow-hidden">
         <CardContent className="p-0">
-          {isLoading ? (
+          {loading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
             </div>
-          ) : expenses?.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="p-16 text-center flex flex-col items-center">
               {category === "all" && paymentMethod === "all" ? (
                 <>
@@ -151,7 +147,7 @@ export default function Expenses() {
           ) : (
             <div className="divide-y divide-border/50">
               <AnimatePresence>
-                {expenses?.map((expense) => {
+                {filtered.map((expense) => {
                   const conf = CATEGORY_CONFIG[expense.category] || CATEGORY_CONFIG["Other"];
                   const Icon = conf.icon;
                   
@@ -195,7 +191,7 @@ export default function Expenses() {
                           size="icon" 
                           className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-all rounded-full h-10 w-10"
                           onClick={() => handleDelete(expense.id)}
-                          disabled={deleteExpense.isPending}
+                          disabled={deletingId === expense.id}
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>

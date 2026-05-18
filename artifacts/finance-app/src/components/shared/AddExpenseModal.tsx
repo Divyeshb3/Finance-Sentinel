@@ -1,14 +1,8 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
-import { 
-  useCreateExpense, 
-  getListExpensesQueryKey, 
-  getGetAnalyticsSummaryQueryKey, 
-  getGetDailyAnalyticsQueryKey, 
-  getGetCategoryAnalyticsQueryKey 
-} from "@workspace/api-client-react";
+import { addExpense } from "@/lib/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
 import { 
   Utensils, Plane, ShoppingBag, Smartphone, 
   Film, GraduationCap, HeartPulse, FileText, 
@@ -67,9 +60,9 @@ const formSchema = z.object({
 
 export function AddExpenseModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const createExpense = useCreateExpense();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,31 +75,19 @@ export function AddExpenseModal({ children }: { children: React.ReactNode }) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    createExpense.mutate(
-      { data: values },
-      {
-        onSuccess: () => {
-          setOpen(false);
-          form.reset();
-          toast({
-            title: "Expense added",
-            description: "Your expense has been recorded.",
-          });
-          queryClient.invalidateQueries({ queryKey: getListExpensesQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetAnalyticsSummaryQueryKey() });
-          // Invalidate daily/category analytics by sweeping through
-          queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === "getDailyAnalytics" || query.queryKey[0] === "getCategoryAnalytics" });
-        },
-        onError: () => {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to add expense. Please try again.",
-          });
-        },
-      }
-    );
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) return;
+    setIsPending(true);
+    try {
+      await addExpense(user.uid, values);
+      setOpen(false);
+      form.reset({ amount: 0, description: "", category: "", paymentMethod: "", date: new Date().toISOString().split("T")[0] });
+      toast({ title: "Expense added", description: "Your expense has been recorded." });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Failed to add expense. Please try again." });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -235,10 +216,10 @@ export function AddExpenseModal({ children }: { children: React.ReactNode }) {
               <div className="pt-2">
                 <Button 
                   type="submit" 
-                  disabled={createExpense.isPending} 
+                  disabled={isPending} 
                   className="w-full h-12 text-base font-bold gradient-indigo shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  {createExpense.isPending ? "Adding..." : "Add Expense"}
+                  {isPending ? "Adding..." : "Add Expense"}
                 </Button>
               </div>
             </form>
