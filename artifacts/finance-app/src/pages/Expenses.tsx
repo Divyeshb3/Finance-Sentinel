@@ -125,11 +125,28 @@ export default function Expenses() {
             </div>
           ) : expenses?.length === 0 ? (
             <div className="p-16 text-center flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-                <Search className="h-10 w-10 text-muted-foreground opacity-50" />
-              </div>
-              <p className="font-bold text-2xl mb-2">No expenses found</p>
-              <p className="text-muted-foreground font-medium">Try adjusting your filters or add a new expense.</p>
+              {category === "all" && paymentMethod === "all" ? (
+                <>
+                  <div className="w-20 h-20 rounded-2xl gradient-indigo flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
+                    <Search className="h-10 w-10 text-white" />
+                  </div>
+                  <p className="font-bold text-2xl mb-2">No transactions added yet</p>
+                  <p className="text-muted-foreground font-medium mb-6">Start tracking your expenses to get insights on your spending.</p>
+                  <AddExpenseModal>
+                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-indigo text-white font-bold shadow-lg shadow-primary/20 hover:-translate-y-0.5 transition-all text-sm">
+                      Add your first expense
+                    </button>
+                  </AddExpenseModal>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <Search className="h-10 w-10 text-muted-foreground opacity-50" />
+                  </div>
+                  <p className="font-bold text-2xl mb-2">No expenses found</p>
+                  <p className="text-muted-foreground font-medium">Try adjusting your filters or add a new expense.</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="divide-y divide-border/50">

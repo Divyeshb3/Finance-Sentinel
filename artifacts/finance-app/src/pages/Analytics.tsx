@@ -9,8 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend
+  PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
+import { TrendingUp, PieChart as PieChartIcon, BarChart2 } from "lucide-react";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--primary))'];
@@ -143,8 +146,17 @@ export default function Analytics() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-[400px] flex items-center justify-center text-muted-foreground font-medium">
-                  No data available for this period.
+                <div className="h-[400px] flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                    <TrendingUp className="h-8 w-8 text-muted-foreground opacity-40" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">Add expenses to see your trend</p>
+                    <p className="text-sm text-muted-foreground mt-1">Your daily spending chart will appear here once you start tracking.</p>
+                  </div>
+                  <Link href="/expenses">
+                    <Button variant="outline" className="rounded-xl font-semibold mt-2">Start tracking expenses</Button>
+                  </Link>
                 </div>
               )}
             </CardContent>
@@ -175,7 +187,7 @@ export default function Analytics() {
                           nameKey="category"
                           stroke="none"
                         >
-                          {categoryData.map((entry, index) => (
+                          {categoryData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -183,13 +195,13 @@ export default function Analytics() {
                           formatter={(value: number) => formatCurrency(value)}
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
                         />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    No data available
+                  <div className="h-[300px] flex flex-col items-center justify-center gap-3 text-center">
+                    <PieChartIcon className="h-10 w-10 text-muted-foreground opacity-30" />
+                    <p className="font-semibold text-muted-foreground">Add expenses to see your category breakdown</p>
                   </div>
                 )}
               </CardContent>
@@ -228,8 +240,10 @@ export default function Analytics() {
                     })}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    No data available
+                  <div className="flex flex-col items-center justify-center h-[200px] gap-3 text-center">
+                    <BarChart2 className="h-10 w-10 text-muted-foreground opacity-30" />
+                    <p className="font-semibold text-muted-foreground">No category data yet</p>
+                    <p className="text-xs text-muted-foreground">Add expenses to see how you spend across categories.</p>
                   </div>
                 )}
               </CardContent>
@@ -246,7 +260,7 @@ export default function Analytics() {
             <CardContent>
               {isLoadingComparison ? (
                 <Skeleton className="h-[300px] w-full rounded-xl" />
-              ) : comparisonData ? (
+              ) : comparisonData && (comparisonData.thisWeek > 0 || comparisonData.lastWeek > 0) ? (
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                   <div className="space-y-8">
                     <div className="space-y-2">
@@ -299,8 +313,14 @@ export default function Analytics() {
                   </div>
                 </div>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  No data available
+                <div className="h-[300px] flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center">
+                    <BarChart2 className="h-8 w-8 text-muted-foreground opacity-40" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">No spending data to compare</p>
+                    <p className="text-sm text-muted-foreground mt-1">Add expenses this week and last week to see a comparison.</p>
+                  </div>
                 </div>
               )}
             </CardContent>
