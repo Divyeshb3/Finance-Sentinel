@@ -66,6 +66,7 @@ router.post("/expenses", async (req, res) => {
         description: body.description,
         date: body.date,
         paymentMethod: body.paymentMethod,
+        userId: body.userId,
       })
       .returning();
 
@@ -122,7 +123,8 @@ router.patch("/expenses/:id", async (req, res) => {
     if (body.category !== undefined) updates.category = body.category;
     if (body.description !== undefined) updates.description = body.description;
     if (body.date !== undefined) updates.date = body.date;
-    if (body.paymentMethod !== undefined) updates.paymentMethod = body.paymentMethod;
+    if (body.paymentMethod !== undefined)
+      updates.paymentMethod = body.paymentMethod;
 
     const [expense] = await db
       .update(expensesTable)

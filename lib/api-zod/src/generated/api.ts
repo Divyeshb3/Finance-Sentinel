@@ -5,271 +5,263 @@
  * FinWise Personal Finance API
  * OpenAPI spec version: 0.1.0
  */
-import * as zod from 'zod';
-
+import * as zod from "zod";
 
 /**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
-  "status": zod.string()
-})
-
+  status: zod.string(),
+});
 
 /**
  * @summary List expenses with optional filters
  */
 export const ListExpensesQueryParams = zod.object({
-  "startDate": zod.coerce.string().nullish(),
-  "endDate": zod.coerce.string().nullish(),
-  "category": zod.coerce.string().nullish(),
-  "paymentMethod": zod.coerce.string().nullish(),
-  "limit": zod.coerce.number().nullish(),
-  "offset": zod.coerce.number().nullish()
-})
+  startDate: zod.coerce.string().nullish(),
+  endDate: zod.coerce.string().nullish(),
+  category: zod.coerce.string().nullish(),
+  paymentMethod: zod.coerce.string().nullish(),
+  limit: zod.coerce.number().nullish(),
+  offset: zod.coerce.number().nullish(),
+});
 
 export const ListExpensesResponseItem = zod.object({
-  "id": zod.number(),
-  "amount": zod.number(),
-  "category": zod.string(),
-  "description": zod.string(),
-  "date": zod.string(),
-  "paymentMethod": zod.string(),
-  "createdAt": zod.string()
-})
-export const ListExpensesResponse = zod.array(ListExpensesResponseItem)
-
+  id: zod.number(),
+  amount: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  date: zod.string(),
+  paymentMethod: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListExpensesResponse = zod.array(ListExpensesResponseItem);
 
 /**
  * @summary Create a new expense
  */
 export const CreateExpenseBody = zod.object({
-  "amount": zod.number(),
-  "category": zod.string(),
-  "description": zod.string(),
-  "date": zod.string(),
-  "paymentMethod": zod.string()
-})
-
+  amount: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  date: zod.string(),
+  paymentMethod: zod.string(),
+  userId: zod.string(),
+});
 
 /**
  * @summary Get expense by ID
  */
 export const GetExpenseParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const GetExpenseResponse = zod.object({
-  "id": zod.number(),
-  "amount": zod.number(),
-  "category": zod.string(),
-  "description": zod.string(),
-  "date": zod.string(),
-  "paymentMethod": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  amount: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  date: zod.string(),
+  paymentMethod: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Update an expense
  */
 export const UpdateExpenseParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateExpenseBody = zod.object({
-  "amount": zod.number().optional(),
-  "category": zod.string().optional(),
-  "description": zod.string().optional(),
-  "date": zod.string().optional(),
-  "paymentMethod": zod.string().optional()
-})
+  amount: zod.number().optional(),
+  category: zod.string().optional(),
+  description: zod.string().optional(),
+  date: zod.string().optional(),
+  paymentMethod: zod.string().optional(),
+});
 
 export const UpdateExpenseResponse = zod.object({
-  "id": zod.number(),
-  "amount": zod.number(),
-  "category": zod.string(),
-  "description": zod.string(),
-  "date": zod.string(),
-  "paymentMethod": zod.string(),
-  "createdAt": zod.string()
-})
-
+  id: zod.number(),
+  amount: zod.number(),
+  category: zod.string(),
+  description: zod.string(),
+  date: zod.string(),
+  paymentMethod: zod.string(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary Delete an expense
  */
 export const DeleteExpenseParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary List all budgets
  */
 export const ListBudgetsQueryParams = zod.object({
-  "month": zod.coerce.string().nullish().describe('Month in YYYY-MM format')
-})
+  month: zod.coerce.string().nullish().describe("Month in YYYY-MM format"),
+});
 
 export const ListBudgetsResponseItem = zod.object({
-  "id": zod.number(),
-  "category": zod.string(),
-  "amount": zod.number(),
-  "month": zod.string(),
-  "spent": zod.number(),
-  "remaining": zod.number().optional()
-})
-export const ListBudgetsResponse = zod.array(ListBudgetsResponseItem)
-
+  id: zod.number(),
+  category: zod.string(),
+  amount: zod.number(),
+  month: zod.string(),
+  spent: zod.number(),
+  remaining: zod.number().optional(),
+});
+export const ListBudgetsResponse = zod.array(ListBudgetsResponseItem);
 
 /**
  * @summary Create or update a budget for a category
  */
 export const CreateBudgetBody = zod.object({
-  "category": zod.string(),
-  "amount": zod.number(),
-  "month": zod.string()
-})
-
+  category: zod.string(),
+  amount: zod.number(),
+  month: zod.string(),
+});
 
 /**
  * @summary Update a budget
  */
 export const UpdateBudgetParams = zod.object({
-  "id": zod.coerce.number()
-})
+  id: zod.coerce.number(),
+});
 
 export const UpdateBudgetBody = zod.object({
-  "amount": zod.number().optional()
-})
+  amount: zod.number().optional(),
+});
 
 export const UpdateBudgetResponse = zod.object({
-  "id": zod.number(),
-  "category": zod.string(),
-  "amount": zod.number(),
-  "month": zod.string(),
-  "spent": zod.number(),
-  "remaining": zod.number().optional()
-})
-
+  id: zod.number(),
+  category: zod.string(),
+  amount: zod.number(),
+  month: zod.string(),
+  spent: zod.number(),
+  remaining: zod.number().optional(),
+});
 
 /**
  * @summary Delete a budget
  */
 export const DeleteBudgetParams = zod.object({
-  "id": zod.coerce.number()
-})
-
+  id: zod.coerce.number(),
+});
 
 /**
  * @summary Get spending summary (today, week, month totals + category breakdown)
  */
 export const GetAnalyticsSummaryResponse = zod.object({
-  "todayTotal": zod.number(),
-  "weekTotal": zod.number(),
-  "monthTotal": zod.number(),
-  "topCategory": zod.string(),
-  "savingsEstimate": zod.number(),
-  "recentExpenses": zod.array(zod.object({
-  "id": zod.number(),
-  "amount": zod.number(),
-  "category": zod.string(),
-  "description": zod.string(),
-  "date": zod.string(),
-  "paymentMethod": zod.string(),
-  "createdAt": zod.string()
-}))
-})
-
+  todayTotal: zod.number(),
+  weekTotal: zod.number(),
+  monthTotal: zod.number(),
+  topCategory: zod.string(),
+  savingsEstimate: zod.number(),
+  recentExpenses: zod.array(
+    zod.object({
+      id: zod.number(),
+      amount: zod.number(),
+      category: zod.string(),
+      description: zod.string(),
+      date: zod.string(),
+      paymentMethod: zod.string(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
 
 /**
  * @summary Get day-by-day spending for a date range
  */
 export const GetDailyAnalyticsQueryParams = zod.object({
-  "startDate": zod.coerce.string(),
-  "endDate": zod.coerce.string()
-})
+  startDate: zod.coerce.string(),
+  endDate: zod.coerce.string(),
+});
 
 export const GetDailyAnalyticsResponseItem = zod.object({
-  "date": zod.string(),
-  "total": zod.number()
-})
-export const GetDailyAnalyticsResponse = zod.array(GetDailyAnalyticsResponseItem)
-
+  date: zod.string(),
+  total: zod.number(),
+});
+export const GetDailyAnalyticsResponse = zod.array(
+  GetDailyAnalyticsResponseItem,
+);
 
 /**
  * @summary Get spending breakdown by category
  */
 export const GetCategoryAnalyticsQueryParams = zod.object({
-  "startDate": zod.coerce.string().nullish(),
-  "endDate": zod.coerce.string().nullish()
-})
+  startDate: zod.coerce.string().nullish(),
+  endDate: zod.coerce.string().nullish(),
+});
 
 export const GetCategoryAnalyticsResponseItem = zod.object({
-  "category": zod.string(),
-  "total": zod.number(),
-  "count": zod.number(),
-  "percentage": zod.number()
-})
-export const GetCategoryAnalyticsResponse = zod.array(GetCategoryAnalyticsResponseItem)
-
+  category: zod.string(),
+  total: zod.number(),
+  count: zod.number(),
+  percentage: zod.number(),
+});
+export const GetCategoryAnalyticsResponse = zod.array(
+  GetCategoryAnalyticsResponseItem,
+);
 
 /**
  * @summary Compare this week vs last week and this month vs last month
  */
 export const GetSpendingComparisonResponse = zod.object({
-  "thisWeek": zod.number(),
-  "lastWeek": zod.number(),
-  "thisMonth": zod.number(),
-  "lastMonth": zod.number(),
-  "weekChange": zod.number(),
-  "monthChange": zod.number(),
-  "avgDailyThisMonth": zod.number().optional(),
-  "avgDailyLastMonth": zod.number().optional()
-})
-
+  thisWeek: zod.number(),
+  lastWeek: zod.number(),
+  thisMonth: zod.number(),
+  lastMonth: zod.number(),
+  weekChange: zod.number(),
+  monthChange: zod.number(),
+  avgDailyThisMonth: zod.number().optional(),
+  avgDailyLastMonth: zod.number().optional(),
+});
 
 /**
  * @summary Get overall financial health score and breakdown
  */
 export const GetHealthScoreResponse = zod.object({
-  "score": zod.number(),
-  "grade": zod.string(),
-  "budgetAdherence": zod.number(),
-  "savingsRate": zod.number(),
-  "spendingConsistency": zod.number(),
-  "message": zod.string().optional()
-})
-
+  score: zod.number(),
+  grade: zod.string(),
+  budgetAdherence: zod.number(),
+  savingsRate: zod.number(),
+  spendingConsistency: zod.number(),
+  message: zod.string().optional(),
+});
 
 /**
  * @summary Get AI-generated spending insights and wasteful pattern detection
  */
 export const GetInsightsResponseItem = zod.object({
-  "id": zod.string(),
-  "type": zod.string(),
-  "title": zod.string(),
-  "message": zod.string(),
-  "severity": zod.string(),
-  "amount": zod.number().nullish(),
-  "savingsPotential": zod.number().nullish()
-})
-export const GetInsightsResponse = zod.array(GetInsightsResponseItem)
-
+  id: zod.string(),
+  type: zod.string(),
+  title: zod.string(),
+  message: zod.string(),
+  severity: zod.string(),
+  amount: zod.number().nullish(),
+  savingsPotential: zod.number().nullish(),
+});
+export const GetInsightsResponse = zod.array(GetInsightsResponseItem);
 
 /**
  * @summary Send a message to the AI financial assistant
  */
 export const SendChatMessageBody = zod.object({
-  "message": zod.string(),
-  "history": zod.array(zod.object({
-  "role": zod.string(),
-  "content": zod.string()
-})).optional()
-})
+  message: zod.string(),
+  history: zod
+    .array(
+      zod.object({
+        role: zod.string(),
+        content: zod.string(),
+      }),
+    )
+    .optional(),
+});
 
 export const SendChatMessageResponse = zod.object({
-  "reply": zod.string()
-})
-
-
+  reply: zod.string(),
+});
